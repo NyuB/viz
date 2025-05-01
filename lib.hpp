@@ -17,6 +17,7 @@ struct LogMessage {
     static LogMessage info(std::string const &msg);
     static LogMessage error(std::string const &msg);
     bool operator==(LogMessage const &other) const;
+    bool operator!=(LogMessage const &other) const;
 };
 
 std::string newString(const char *str);

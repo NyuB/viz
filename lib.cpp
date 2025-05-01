@@ -15,6 +15,12 @@ LogMessage LogMessage::error(std::string const &msg) {
 bool LogMessage::operator==(LogMessage const &other) const {
     return level == other.level && text == other.text;
 }
+/**
+ * \note This needs to be overloaded for ASSERT_NE even if perator== is already defined
+ */
+bool LogMessage::operator!=(LogMessage const &other) const {
+    return !(*this == other);
+}
 
 std::string newString(const char *str) { return std::string(str); }
 } // namespace nyub

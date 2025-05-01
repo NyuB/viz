@@ -16,6 +16,7 @@ Basically what is described in [Googletest documentation](https://google.github.
 ### Attention points
 
 - define the printer in the same namespace as the printed type
+- operator== AND operator!= are required for ASSERT_EQ and ASSERT_NE (meaning operator!= is not defaulted to !(operator==))
 
 ### Ideas
 
