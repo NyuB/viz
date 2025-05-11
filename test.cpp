@@ -58,21 +58,45 @@ class Result : private std::variant<Value, failed<Err>> {
     bool is_failure() const {
         return std::holds_alternative<failed<Err>>(*this);
     }
-    operator bool() const { return has_value(); }
+    inline operator bool() const { return has_value(); }
 
     Value value() const { return std::get<Value>(*this); }
     Err error() const { return std::get<failed<Err>>(*this).error(); }
 
-    template <typename A, class Function>
-    Result<A, Err> andThen(Function const &f) const {
+    template <typename Method,
+              std::enable_if_t<std::is_invocable_v<Method, Value const &>,
+                               bool> = true>
+    auto andThen(Method const &f) -> Result<decltype(f(value())), Err> const {
+        using NewValue = decltype(f(value()));
         if (is_failure()) {
-            return Result<A, Err>(failed(error()));
+            return Result<NewValue, Err>(failed(error()));
         }
-        return Result<A, Err>(f(value()));
+        return Result<NewValue, Err>(f(value()));
+    }
+
+    template <
+        class Method,
+        // Only if Value is a class
+        typename Value_ = Value, // To trigger parameter substitution and SFINAE
+        std::enable_if_t<std::is_class_v<Value_>, bool> = true,
+
+        std::enable_if_t<std::is_member_function_pointer_v<Method>, bool> =
+            true>
+    std::invoke_result_t<Method, Value const &>
+    andThen(Method const &f) // Not using -> decltype(...) more readable syntax
+                             // because Intellisense does not handle SFINAE for
+                             // this construct and emits warnings when
+                             // instantiating with non-class Value types
+        const {
+        using NewValue = decltype((value().*f)());
+        if (is_failure()) {
+            return Result<NewValue, Err>(failed(error()));
+        }
+        return Result<NewValue, Err>((value().*f)());
     }
 };
 
-MATCHER(Succeeded, "to be sucessfull") {
+MATCHER(Succeeded, "to be successfull") {
     if (arg.is_failure()) {
         *result_listener << "failed with <"
                          << testing::PrintToString(arg.error()) << ">";
@@ -203,12 +227,17 @@ TEST(Result, Chaining) {
     Result<int, std::string> ok = 3;
     Result<int, std::string> ko = failed<std::string>("Oops");
     auto twice = [](const int &i) { return 2 * i; };
-    auto intToString = [](const int &i) { return std::to_string(i); };
+    static_assert(std::is_invocable_v<decltype(twice), int>);
 
-    Result<int, std::string> okTwice = ok.andThen<int>(twice);
-    auto okTwiceStr = okTwice.andThen<std::string>(intToString);
-    auto mapByMethod = okTwiceStr.andThen<size_t>(&std::size<std::string>);
-    Result<int, std::string> koTwice = ko.andThen<int>(twice);
+    Result<int, std::string> okTwice = ok.andThen(twice);
+    Result<std::string, std::string> okTwiceStr =
+        okTwice.andThen([](const int &i) {
+            return std::to_string(i); // since std::to_string is overloaded we
+                                      // cannot pass it directly :(
+        });
+    Result<size_t, std::string> mapByMethod =
+        okTwiceStr.andThen(&std::string::size);
+    Result<int, std::string> koTwice = ko.andThen(twice);
 
     ASSERT_THAT(okTwice, SucceededWith(6));
     ASSERT_THAT(okTwiceStr, SucceededWith<std::string>("6"));
