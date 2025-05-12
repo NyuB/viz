@@ -1,8 +1,4 @@
-#include <format>
 #include <iostream>
 #include <string>
 
-void prettyString(std::string const &) {
-    std::cout << "Pretty" << std::endl;
-    return;
-}
+void prettyString(std::string const &) { std::cout << "Pretty" << std::endl; }

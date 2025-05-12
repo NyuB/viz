@@ -42,31 +42,36 @@ TEST(Test, FailEquality) {
 
 template <class Err> class failed {
   public:
-    failed(Err const &error) : m_error(error) {}
-    Err error() const { return m_error; }
+    explicit failed(Err const &error) : m_error(error) {}
+    [[nodiscard]] Err error() const { return m_error; }
 
   private:
     Err m_error;
 };
 
 template <typename Value, typename Err>
-class Result : private std::variant<Value, failed<Err>> {
+class Result : std::variant<Value, failed<Err>> {
   public:
     Result(const Value &a) : std::variant<Value, failed<Err>>(a) {}
     Result(const failed<Err> &ko) : std::variant<Value, failed<Err>>(ko) {}
-    bool has_value() const { return std::holds_alternative<Value>(*this); }
-    bool is_failure() const {
+    [[nodiscard]] bool has_value() const {
+        return std::holds_alternative<Value>(*this);
+    }
+    [[nodiscard]] bool is_failure() const {
         return std::holds_alternative<failed<Err>>(*this);
     }
-    inline operator bool() const { return has_value(); }
+    explicit operator bool() const { return has_value(); }
 
-    Value value() const { return std::get<Value>(*this); }
-    Err error() const { return std::get<failed<Err>>(*this).error(); }
+    [[nodiscard]] Value value() const { return std::get<Value>(*this); }
+    [[nodiscard]] Err error() const {
+        return std::get<failed<Err>>(*this).error();
+    }
 
     template <typename Method,
               std::enable_if_t<std::is_invocable_v<Method, Value const &>,
                                bool> = true>
-    auto andThen(Method const &f) -> Result<decltype(f(value())), Err> const {
+    [[nodiscard]] auto andThen(Method const &f) const
+        -> Result<decltype(f(value())), Err> {
         using NewValue = decltype(f(value()));
         if (is_failure()) {
             return Result<NewValue, Err>(failed(error()));
@@ -82,7 +87,7 @@ class Result : private std::variant<Value, failed<Err>> {
 
         std::enable_if_t<std::is_member_function_pointer_v<Method>, bool> =
             true>
-    std::invoke_result_t<Method, Value const &>
+    [[nodiscard]] Result<std::invoke_result_t<Method, Value const &>, Err>
     andThen(Method const &f) // Not using -> decltype(...) more readable syntax
                              // because Intellisense does not handle SFINAE for
                              // this construct and emits warnings when

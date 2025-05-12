@@ -16,7 +16,8 @@ bool LogMessage::operator==(LogMessage const &other) const {
     return level == other.level && text == other.text;
 }
 /**
- * \note This needs to be overloaded for ASSERT_NE even if perator== is already defined
+ * \note This needs to be overloaded for ASSERT_NE even if operator== is already
+ * defined
  */
 bool LogMessage::operator!=(LogMessage const &other) const {
     return !(*this == other);
