@@ -67,7 +67,7 @@ class Result : std::variant<Value, failed<Err>> {
     template <typename Method,
               std::enable_if_t<std::is_invocable_v<Method, const Value &>,
                                bool> = true>
-    [[nodiscard]] auto andThen(const Method &f) const
+    [[nodiscard]] auto andThen(const Function &f) const
         -> Result<decltype(f(value())), Err> {
         using NewValue = decltype(f(value()));
         if (is_failure()) {
