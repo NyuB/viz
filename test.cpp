@@ -64,8 +64,15 @@ class Result : std::variant<Value, failed<Err>> {
         return std::get<failed<Err>>(*this).error();
     }
 
-    template <typename Method,
-              std::enable_if_t<std::is_invocable_v<Method, const Value &>,
+    /**
+     *
+     * @tparam Function the method to call on this result value
+     * @param f the function to call on this result value
+     * @return a result holding \p f(value())' or \p error() if \p is_failed() is
+     * `true`
+     */
+    template <typename Function,
+              std::enable_if_t<std::is_invocable_v<Function, const Value &>,
                                bool> = true>
     [[nodiscard]] auto andThen(const Function &f) const
         -> Result<decltype(f(value())), Err> {
