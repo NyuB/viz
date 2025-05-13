@@ -1,6 +1,3 @@
-//! @file Illustrates Googletest way to customize representation of data under
-//! test
-
 #include "lib.hpp"
 #include <algorithm>
 #include <gmock/gmock.h>
