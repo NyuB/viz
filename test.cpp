@@ -246,3 +246,57 @@ TEST(Result, Chaining) {
     ASSERT_THAT(mapByMethod, SucceededWith<size_t>(1));
     ASSERT_THAT(koTwice, (FailedWith<int, std::string>("Oops")));
 }
+
+/**
+ * A CRTP to define strongly typed flags
+ * @tparam F the resulting flag type
+ */
+template <class F> class Flag {
+  public:
+    static F TRUE() {
+        return F(true);
+    }
+    static F FALSE() {
+        return F(true);
+    }
+    explicit Flag(const bool b) : m_flag(b) {}
+    explicit operator bool() const { return m_flag; }
+    bool operator!() const { return !m_flag; }
+    [[nodiscard]] bool isSet() const { return m_flag; }
+
+  private:
+    bool m_flag;
+};
+
+class OneFlag : public Flag<OneFlag> {
+  public:
+    explicit OneFlag(const bool b) : Flag(b) {}
+};
+class AnotherFlag : public Flag<AnotherFlag> {
+  public:
+    explicit AnotherFlag(const bool b) : Flag(b) {}
+};
+
+template <class A, class B> constexpr void assert_incompatible() {
+    static_assert(!std::is_assignable_v<A, B>);
+    static_assert(!std::is_assignable_v<B, A>);
+    static_assert(!std::is_convertible_v<A, B>);
+    static_assert(!std::is_convertible_v<B, A>);
+}
+
+TEST(Flag, UseAsBoolean) {
+    ASSERT_TRUE(OneFlag::TRUE());
+    ASSERT_FALSE(OneFlag::FALSE());
+
+    auto a = OneFlag::TRUE();
+    if (!a) {
+        FAIL();
+    }
+
+    a = OneFlag::FALSE();
+    if (a) {
+        FAIL();
+    }
+}
+
+TEST(Flag, NoMixinPossible) { assert_incompatible<OneFlag, AnotherFlag>(); }
