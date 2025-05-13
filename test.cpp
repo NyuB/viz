@@ -257,7 +257,7 @@ template <class F> class Flag {
         return F(true);
     }
     static F FALSE() {
-        return F(true);
+        return F(false);
     }
     explicit Flag(const bool b) : m_flag(b) {}
     explicit operator bool() const { return m_flag; }
