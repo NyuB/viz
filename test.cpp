@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 namespace nyub { // operator overload must live in the same namespace as the
                  // printed value
-std::ostream &operator<<(std::ostream &os, LogLevel const &logLevel) {
+std::ostream &operator<<(std::ostream &os, const LogLevel &logLevel) {
     std::string repr("<INVALID LOG LEVEL>");
     switch (logLevel) {
     case LogLevel::DEBUG:
@@ -24,7 +24,7 @@ std::ostream &operator<<(std::ostream &os, LogLevel const &logLevel) {
     return os << repr;
 }
 
-std::ostream &operator<<(std::ostream &os, nyub::LogMessage const &msg) {
+std::ostream &operator<<(std::ostream &os, const nyub::LogMessage &msg) {
     return os << "{ .level = " << msg.level << ", .text = " << msg.text << " }";
 }
 } // namespace nyub
@@ -42,7 +42,7 @@ TEST(Test, FailEquality) {
 
 template <class Err> class failed {
   public:
-    explicit failed(Err const &error) : m_error(error) {}
+    explicit failed(const Err &error) : m_error(error) {}
     [[nodiscard]] Err error() const { return m_error; }
 
   private:
@@ -68,9 +68,9 @@ class Result : std::variant<Value, failed<Err>> {
     }
 
     template <typename Method,
-              std::enable_if_t<std::is_invocable_v<Method, Value const &>,
+              std::enable_if_t<std::is_invocable_v<Method, const Value &>,
                                bool> = true>
-    [[nodiscard]] auto andThen(Method const &f) const
+    [[nodiscard]] auto andThen(const Method &f) const
         -> Result<decltype(f(value())), Err> {
         using NewValue = decltype(f(value()));
         if (is_failure()) {
@@ -87,8 +87,8 @@ class Result : std::variant<Value, failed<Err>> {
 
         std::enable_if_t<std::is_member_function_pointer_v<Method>, bool> =
             true>
-    [[nodiscard]] Result<std::invoke_result_t<Method, Value const &>, Err>
-    andThen(Method const &f) // Not using -> decltype(...) more readable syntax
+    [[nodiscard]] Result<std::invoke_result_t<Method, const Value &>, Err>
+    andThen(const Method &f) // Not using -> decltype(...) more readable syntax
                              // because Intellisense does not handle SFINAE for
                              // this construct and emits warnings when
                              // instantiating with non-class Value types
@@ -120,14 +120,14 @@ MATCHER(Failed, "to be a failure") {
 }
 
 template <class Value, class Err = std::string>
-testing::Matcher<Result<Value, Err>> SucceededWith(Value const &v) {
+testing::Matcher<Result<Value, Err>> SucceededWith(const Value &v) {
     return testing::AllOf(
         Succeeded(),
         testing::Property("value", &Result<Value, Err>::value, testing::Eq(v)));
 }
 
 template <class Value, class Err = std::string>
-testing::Matcher<Result<Value, Err>> FailedWith(Err const &err) {
+testing::Matcher<Result<Value, Err>> FailedWith(const Err &err) {
     return testing::AllOf(Failed(),
                           testing::Property("error", &Result<Value, Err>::error,
                                             testing::Eq(err)));
@@ -135,7 +135,7 @@ testing::Matcher<Result<Value, Err>> FailedWith(Err const &err) {
 
 template <class Value>
 testing::Matcher<Result<Value, std::string>>
-FailedWithMessageContaining(std::string const &err) {
+FailedWithMessageContaining(const std::string &err) {
     return testing::AllOf(
         Failed(), testing::Property("error", &Result<Value, std::string>::error,
                                     testing::HasSubstr(err)));
@@ -160,7 +160,7 @@ struct customWithToString {
     int i;
     long l;
     friend std::ostream &operator<<(std::ostream &os,
-                                    customWithToString const &_this) {
+                                    const customWithToString &_this) {
         return os << "{ i = " << _this.i << ", l = " << _this.l << " }";
     }
 };

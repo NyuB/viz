@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.29 FATAL_ERROR)
-project(CppLearn LANGUAGES CXX)
+project(Viz LANGUAGES CXX)
 cmake_policy(SET CMP0135 NEW)
 
 # Custom imports
